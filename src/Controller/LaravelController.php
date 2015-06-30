@@ -1,6 +1,6 @@
 <?php
 
-namespace Optimus\Uploader\Controller;
+namespace Optimus\FineuploaderServer\Controller;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Controller;

@@ -1,21 +1,28 @@
 <?php
 
-namespace Optimus\Uploader;
+namespace Optimus\FineuploaderServer;
 
-use Optimus\Uploader\Storage\StorageInterface;
-use Optimus\Uploader\Vendor\FineUploader;
+use Optimus\FineuploaderServer\Naming\NamingStrategyInterface;
+use Optimus\FineuploaderServer\Storage\StorageInterface;
+use Optimus\FineuploaderServer\Vendor\FineUploader;
 
 class Uploader {
 
     private $storage;
 
+    private $namingStrategy;
+
     private $config;
 
-    public function __construct(StorageInterface $storage, array $config){
+    public function __construct(
+        StorageInterface $storage,
+        NamingStrategyInterface $namingStrategy,
+        array $config){
         $this->storage = $storage;
+        $this->namingStrategy = $namingStrategy;
         $this->config = $config;
 
-        $this->checkOrCreateStorageDirectories();
+        $this->checkOrCreateTempDirectories();
     }
 
     public function upload($input){
@@ -25,9 +32,10 @@ class Uploader {
 
         $filePath = $fineUploader->getName();
 
+        // Upload the file to the temporary directory so it can be forwarded
+        // to the proper storage by the storage engine
         $file = new \SplFileInfo($filePath);
         $tempPath = $this->uploaderPath($this->config['temp_folder']);
-        $newFilePath = sprintf('%s/%s', $tempPath, $file->getFilename());
 
         $upload = $fineUploader->handleUpload($tempPath, $file->getFilename());
 
@@ -35,9 +43,26 @@ class Uploader {
             return $upload;
         }
 
+        // Get the full temporary path of the file, something like
+        // storage/uploads/temp/{qquid}/file.ext
         $newTempPath = sprintf('%s/%s/%s', $tempPath, $upload['uuid'], $file->getFilename());
+        $tempFile = new \SplFileInfo($newTempPath);
 
-        $storage = $this->storage->store(new \SplFileInfo($newTempPath));
+        // Get a new name based on the naming strategy
+        $newName = $this->namingStrategy->generateName($tempFile);
+        if ($newName !== $tempFile->getFilename()) {
+            $renamedTempPath = sprintf('%s/%s', $tempFile->getPath(), $newName);
+            rename($newTempPath, $renamedTempPath);
+            $tempFile = new \SplFileInfo($renamedTempPath);
+        }
+
+        $storage = $this->storage->store($tempFile, $this->getStoragePath($input));
+
+        return [
+            'name' => $storage,
+            'message' => 'Completed.',
+            'type' => 'upload'
+        ];
     }
 
     public function delete($filename){
@@ -49,6 +74,11 @@ class Uploader {
 
     public function session($session){
         return $session === null ? [] : $session;
+    }
+
+    public function setStorage(StorageInterface $storage)
+    {
+        $this->storage = $storage;
     }
 
     private function mergeFineUploaderConfig($input, array $config)
@@ -77,29 +107,30 @@ class Uploader {
         return $instance;
     }
 
-    private function checkOrCreateStorageDirectories()
+    private function checkOrCreateTempDirectories()
     {
-        $uploaderFolder = $this->config['uploader_folder'];
-
-        if (!is_dir($uploaderFolder)) {
-            mkdir($uploaderFolder, 0755);
-        }
-
         $chunksFolder = $this->uploaderPath($this->config['fine_uploader']['chunks_folder']);
         $tempFolder = $this->uploaderPath($this->config['temp_folder']);
 
         if (!is_dir($chunksFolder)) {
-            mkdir($chunksFolder, 0755);
+            mkdir($chunksFolder, 0755, true);
         }
 
         if (!is_dir($tempFolder)) {
-            mkdir($tempFolder, 0755);
+            mkdir($tempFolder, 0755, true);
         }
     }
 
     private function uploaderPath($path)
     {
         return sprintf('%s%s', $this->config['uploader_folder'], $path);
+    }
+
+    private function getStoragePath(array $input)
+    {
+        return $input['sub_directory'] === 'null' || $input['sub_directory'] === '' ?
+                    $input['base_directory'] :
+                    sprintf('%s/%s', $input['base_directory'], $input['sub_directory']);
     }
 
 }

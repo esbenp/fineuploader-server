@@ -1,6 +1,6 @@
 <?php
 
-namespace Optimus\Uploader\Facade;
+namespace Optimus\FineuploaderServer\Facade;
 
 use Illuminate\Support\Facades\Facade;
 

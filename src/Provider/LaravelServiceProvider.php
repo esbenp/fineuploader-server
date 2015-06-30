@@ -1,9 +1,9 @@
 <?php
 
-namespace Optimus\Uploader\Provider;
+namespace Optimus\FineuploaderServer\Provider;
 
 use Illuminate\Support\ServiceProvider as BaseProvider;
-use Optimus\Uploader\Uploader;
+use Optimus\FineuploaderServer\Uploader;
 
 class LaravelServiceProvider extends BaseProvider {
 
@@ -20,12 +20,32 @@ class LaravelServiceProvider extends BaseProvider {
         $this->app->bindShared('uploader', function(){
             $config = $this->app['config']->get('uploader');
 
-            $storage = new $config['storage_driver']();
+            $storage = $this->createStorage($config['storage'], $config['storages']);
+            $namingStrategy = new $config['naming_strategy'];
 
-            $uploader = new Uploader($storage, $config);
+            $uploader = new Uploader($storage, $namingStrategy, $config);
 
             return $uploader;
         });
+    }
+
+    private function createStorage($storageKey, array $storages)
+    {
+        if (!array_key_exists($storageKey, $storages)) {
+            throw new \Exception("$storageKey is not a valid fineuploader server storage");
+        }
+
+        $storage = $storages[$storageKey];
+
+        if (!array_key_exists('class', $storage)) {
+            throw new \Exception("$storageKey does not have a valid storage class");
+        }
+
+        $config = array_key_exists('config', $storage) ? $storage['config'] : [];
+
+        $storage = new $storage['class']($config);
+
+        return $storage;
     }
 
     private function registerAssets()

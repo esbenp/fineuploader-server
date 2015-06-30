@@ -2,8 +2,6 @@
 
 return [
 
-    'storage_driver' => Optimus\Uploader\Storage\Cloudinary\CloudinaryStorage::class,
-
     'uploader_folder' => storage_path() . '/uploader',
 
     'temp_folder' => '/temp',
@@ -15,6 +13,30 @@ return [
         'input_name'    => 'qqfile',
         'chunks_folder' => '/chunks'
 
-    ]
+    ],
+
+    'storage' => 'cloudinary',
+
+    'storages' => [
+
+        'local' => [
+            'class' => \Optimus\FineuploaderServer\Storage\LocalStorage::class,
+            'config' => [
+                'root_folder' => storage_path() . '/uploader'
+            ]
+        ],
+
+        'cloudinary' => [
+            'class' => \Optimus\FineuploaderServer\Storage\CloudinaryStorage::class,
+            'config' => [
+                'cloud_name' => 'traede',
+                'api_key' => '753542315792455',
+                'api_secret' => 'ycOrCejdXnst8jlfNdv-CSM9ROo'
+            ]
+        ]
+
+    ],
+
+    'naming_strategy' => Optimus\FineuploaderServer\Naming\NoRenameStrategy::class
 
 ];
