@@ -1,8 +1,9 @@
 <?php
 
-namespace Optimus\LaravelBoilerplate\Provider;
+namespace Optimus\Uploader\Provider;
 
 use Illuminate\Support\ServiceProvider as BaseProvider;
+use Optimus\Uploader\Uploader;
 
 class LaravelServiceProvider extends BaseProvider {
 
@@ -10,30 +11,35 @@ class LaravelServiceProvider extends BaseProvider {
     {
         $this->loadConfig();
         $this->registerAssets();
+        // Must be called after config
+        $this->bindInstance();
     }
 
-    public function boot()
+    public function bindInstance()
     {
-        $this->loadLangFile();
+        $this->app->bindShared('uploader', function(){
+            $config = $this->app['config']->get('uploader');
+
+            $storage = new $config['storage_driver']();
+
+            $uploader = new Uploader($storage, $config);
+
+            return $uploader;
+        });
     }
 
     private function registerAssets()
     {
         $this->publishes([
-            __DIR__.'/../config/package.php' => config_path('package.php')
+            __DIR__.'/../config/uploader.php' => config_path('uploader.php')
         ]);
     }
 
     private function loadConfig()
     {
-        if ($this->app['config']->get('package') === null) {
-            $this->app['config']->set('package', require __DIR__.'/../config/package.php');
+        if ($this->app['config']->get('uploader') === null) {
+            $this->app['config']->set('uploader', require __DIR__.'/../config/uploader.php');
         }
-    }
-
-    private function loadLangFile()
-    {
-        $this->loadTranslationsFrom(__DIR__.'/../lang', 'package');
     }
 
 }

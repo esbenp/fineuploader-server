@@ -1,8 +1,8 @@
 {
-    "name": "optimus/laravel-boilerplate",
+    "name": "optimus/laravel-uploader",
     "autoload": {
         "psr-4": {
-            "Optimus\\LaravelBoilerplate\\": "src/"
+            "Optimus\\Uploader\\": "src/"
         }
     },
     "require": {

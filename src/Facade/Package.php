@@ -1,6 +1,6 @@
 <?php
 
-namespace Optimus\BatchRequest\Facade;
+namespace Optimus\Uploader\Facade;
 
 use Illuminate\Support\Facades\Facade;
 
