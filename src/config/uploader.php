@@ -15,28 +15,46 @@ return [
 
     ],
 
-    'storage' => 'cloudinary',
+    'storage' => 'local',
+
+    'storage_url_resolver' => function($file){
+        return sprintf("http://laravel-packages.dev/images/%s/%s", $file->getUploaderPath(), $file->getFilename());
+    },
+
+    'success_response_class' => Optimus\FineuploaderServer\Response\OptimusResponse::class,
 
     'storages' => [
 
         'local' => [
-            'class' => \Optimus\FineuploaderServer\Storage\LocalStorage::class,
+            'class' => Optimus\FineuploaderServer\Storage\LocalStorage::class,
             'config' => [
                 'root_folder' => storage_path() . '/uploader'
             ]
         ],
 
         'cloudinary' => [
-            'class' => \Optimus\FineuploaderServer\Storage\CloudinaryStorage::class,
+            'class' => Optimus\FineuploaderServer\Storage\CloudinaryStorage::class,
             'config' => [
                 'cloud_name' => 'traede',
-                'api_key' => '753542315792455',
-                'api_secret' => 'ycOrCejdXnst8jlfNdv-CSM9ROo'
+                'api_key' => env('CLOUDINARY_API_KEY'),
+                'api_secret' => env('CLOUDINARY_API_SECRET'),
+                'editions' => [
+                    'thumbnail' => ['crop' => 'fill', 'width' => 100, 'height' => 100]
+                ]
             ]
         ]
 
     ],
 
-    'naming_strategy' => Optimus\FineuploaderServer\Naming\NoRenameStrategy::class
+    'naming_strategy' => Optimus\FineuploaderServer\Naming\NoRenameStrategy::class,
+
+    'middleware' => [
+        [
+            'class' => Optimus\FineuploaderServer\Middleware\ThumbnailCreator::class,
+            'config' => [
+
+            ]
+        ]
+    ]
 
 ];

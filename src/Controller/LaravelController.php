@@ -29,8 +29,8 @@ class LaravelController extends Controller {
 
     public function delete()
     {
-        $qquuid = $this->request->get('qquuid');
-        return response()->json($this->manager->delete($qquuid));
+        $name = $this->request->get('name');
+        return response()->json($this->manager->delete($name));
     }
 
     public function session()

@@ -6,7 +6,8 @@
         }
     },
     "require": {
-        "laravel/framework": "~5.1"
+        "laravel/framework": "~5.1",
+        "optimus/onion": "0.1.x"
     },
     "require-dev": {
         "mockery/mockery": "0.9.*",

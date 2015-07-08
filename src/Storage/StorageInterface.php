@@ -2,10 +2,12 @@
 
 namespace Optimus\FineuploaderServer\Storage;
 
-use SplFileInfo;
+use Optimus\FineuploaderServer\File\File;
 
 interface StorageInterface {
 
-    public function store(SplFileInfo $file, $path);
+    public function store(File $file, $path);
+
+    public function delete($filename);
 
 }

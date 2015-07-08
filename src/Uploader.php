@@ -2,9 +2,16 @@
 
 namespace Optimus\FineuploaderServer;
 
+use Exception;
+use Optimus\FineuploaderServer\File\RootFile;
 use Optimus\FineuploaderServer\Naming\NamingStrategyInterface;
+use Optimus\FineuploaderServer\Response\ErrorResponse;
+use Optimus\FineuploaderServer\Response\SuccessfulResponseInterface;
 use Optimus\FineuploaderServer\Storage\StorageInterface;
 use Optimus\FineuploaderServer\Vendor\FineUploader;
+use Optimus\Onion\Onion;
+
+require_once __DIR__ . '/Vendor/utilities/delete_directory.php';
 
 class Uploader {
 
@@ -14,13 +21,17 @@ class Uploader {
 
     private $config;
 
+    private $middleware;
+
     public function __construct(
         StorageInterface $storage,
         NamingStrategyInterface $namingStrategy,
-        array $config){
+        array $config,
+        Onion $middleware){
         $this->storage = $storage;
         $this->namingStrategy = $namingStrategy;
         $this->config = $config;
+        $this->middleware = $middleware;
 
         $this->checkOrCreateTempDirectories();
     }
@@ -29,47 +40,69 @@ class Uploader {
         $fineUploader = $this->createFineUploaderInstance(
             $this->mergeFineUploaderConfig($input, $this->config['fine_uploader'])
         );
-
+//throw new \Exception;
         $filePath = $fineUploader->getName();
 
         // Upload the file to the temporary directory so it can be forwarded
         // to the proper storage by the storage engine
-        $file = new \SplFileInfo($filePath);
+        $file = new RootFile($filePath);
         $tempPath = $this->uploaderPath($this->config['temp_folder']);
 
         $upload = $fineUploader->handleUpload($tempPath, $file->getFilename());
 
         if (isset($upload['error'])) {
-            return $upload;
+            return (new ErrorResponse($upload['error']))->toArray();
         }
 
         // Get the full temporary path of the file, something like
         // storage/uploads/temp/{qquid}/file.ext
         $newTempPath = sprintf('%s/%s/%s', $tempPath, $upload['uuid'], $file->getFilename());
-        $tempFile = new \SplFileInfo($newTempPath);
+        $tempFile = new RootFile($newTempPath);
 
         // Get a new name based on the naming strategy
         $newName = $this->namingStrategy->generateName($tempFile);
         if ($newName !== $tempFile->getFilename()) {
             $renamedTempPath = sprintf('%s/%s', $tempFile->getPath(), $newName);
             rename($newTempPath, $renamedTempPath);
-            $tempFile = new \SplFileInfo($renamedTempPath);
+            $tempFile = new RootFile($renamedTempPath);
         }
 
-        $storage = $this->storage->store($tempFile, $this->getStoragePath($input));
+        // This is the relative path from the uploader folder
+        // i.e. /products/1
+        $uploaderPath = $this->getStoragePath($input);
+        $tempFile->setUploaderPath($uploaderPath);
 
-        return [
-            'name' => $storage,
-            'message' => 'Completed.',
-            'type' => 'upload'
-        ];
+        $core = function(RootFile $tempFile) use($uploaderPath) {
+            return $this->storage->store($tempFile, $uploaderPath);
+        };
+        $storage = $this->middleware->peel($tempFile, $core);
+
+        // TODO: Error handling
+
+        // Remove temp directory
+        optimus_delete_directory(sprintf('%s/%s', $tempPath, $upload['uuid']));
+
+        $response = new $this->config['success_response_class']($tempFile, $upload, $storage);
+
+        if (!($response instanceof SuccessfulResponseInterface)) {
+            throw new Exception("Response class " . get_class($response) . " must implement " .
+                                "Optimus\FineuploaderServer\Response\ResponseInterface");
+        }
+
+        return $this->prepareUploadSuccessfulResponse($response->toArray(), $tempFile);
+    }
+
+    private function prepareUploadSuccessfulResponse(array $response, RootFile $file)
+    {
+        return array_merge($response, [
+            'type' => 'upload',
+            'success' => true,
+            'file_type' => $file->getType()
+        ]);
     }
 
     public function delete($filename){
-        // 1. Get UUID from Client
-        // 2. Create full path
-        // 3. Delete using glob
-        // 4. Return response (and UUID? <- why does it do this)
+        return $this->storage->delete($filename);
     }
 
     public function session($session){
