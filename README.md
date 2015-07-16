@@ -1,9 +1,9 @@
-# Laravel Uploader
+# Fineuploader Server
 
-[![Build Status](https://travis-ci.org/esbenp/laravel-uploader.svg)](https://travis-ci.org/esbenp/laravel-uploader) [![Coverage Status](https://coveralls.io/repos/esbenp/laravel-uploader/badge.svg?branch=master)](https://coveralls.io/r/esbenp/laravel-uploader?branch=master)
+[![Build Status](https://travis-ci.org/esbenp/fineuploader-server.svg)](https://travis-ci.org/esbenp/fineuploader-server) [![Coverage Status](https://coveralls.io/repos/esbenp/fineuploader-server/badge.svg?branch=master)](https://coveralls.io/r/esbenp/fineuploader-server?branch=master)
 
 ## Installation
 
 ```bash
-composer require laravel-uploader 0.1.*
+composer require fineuploader-server 0.1.*
 ```
