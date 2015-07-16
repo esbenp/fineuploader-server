@@ -102,7 +102,7 @@ class Uploader {
             'type' => 'upload',
             'success' => true,
             'file_type' => $file->getType(),
-            'upload_path' => sprintf('%s/%s', $file->getUploaderPath(), $file->getFilename())
+            'upload_path' => $file->getName()
         ]);
     }
 
