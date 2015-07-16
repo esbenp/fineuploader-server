@@ -107,12 +107,16 @@ class Uploader {
     }
 
     public function delete($upload_path){
-        return $this->storage->delete($upload_path);
+        $storage = $this->storage->delete($upload_path);
+
+        return [
+            'deleted' => [$upload_path]
+        ];
     }
 
     public function session($input){
         $this->mergeConfig($input);
-        
+
         $session = $input['optimus_uploader_files'];
 
         if ($session === null) {
