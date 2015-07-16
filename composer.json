@@ -1,8 +1,8 @@
 {
-    "name": "optimus/laravel-uploader",
+    "name": "optimus/fineuploader-server",
     "autoload": {
         "psr-4": {
-            "Optimus\\Uploader\\": "src/"
+            "Optimus\\FineuploaderServer\\": "src/"
         }
     },
     "require": {
