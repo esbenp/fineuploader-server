@@ -13,4 +13,6 @@ interface StorageInterface {
 
     public function get(RootFile $file);
 
+    public function move($from, $to);
+
 }

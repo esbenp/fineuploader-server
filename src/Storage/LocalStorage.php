@@ -45,8 +45,9 @@ class LocalStorage implements StorageInterface {
 
         foreach($file->getEditions() as $edition) {
             if ($edition->store() === true) {
-                $newPath = sprintf('%s/%s', $fullPath, $edition->getFilename());
-                rename($edition->getPathname(), $newPath);
+                $from_upload_path = sprintf('%s/%s', $edition->getUploaderPath(), $edition->getFilename());
+                $to_upload_path = sprintf('%s/%s', $path, $edition->getFilename());
+                $this->move($from_upload_path, $to_upload_path);
                 $edition->setUrl($this->resolveUrl($edition));
             }
         }
@@ -93,6 +94,20 @@ class LocalStorage implements StorageInterface {
         }
 
         return $file;
+    }
+
+    public function move($from, $to)
+    {
+        $from_path = sprintf('%s/%s', $this->config['root_folder'], $from);
+        $to_path = sprintf('%s/%s', $this->config['root_folder'], $to);
+
+        if (file_exists($from_path)) {
+            rename($from_path, $to_path);
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private function createStorageFolderIfNotExists()

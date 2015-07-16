@@ -168,6 +168,11 @@ class Uploader {
         $this->storage = $storage;
     }
 
+    public function getStorage()
+    {
+        return $this->storage;
+    }
+
     private function mergeConfig(array $input)
     {
         $height = $input['optimus_uploader_thumbnail_height'];
