@@ -10,7 +10,7 @@ abstract class File extends SplFileInfo {
 
     protected $url;
 
-    protected $meta;
+    protected $meta = [];
 
     public function getUploaderPath()
     {

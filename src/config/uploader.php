@@ -24,9 +24,9 @@ return [
 
     'storage' => 'local',
 
-    'storage_url_resolver' => [
-        'class' => Optimus\FineuploaderServer\Http\CloudinaryUrlResolver::class
-    ],
+    'storage_url_resolver' => function($file) {
+        return '/' . $file->getUploaderPath() . '/' . $file->getFilename();
+    },
 
     'success_response_class' => Optimus\FineuploaderServer\Response\OptimusResponse::class,
 
