@@ -3,6 +3,7 @@
 namespace Optimus\FineuploaderServer;
 
 use Exception;
+use Optimus\FineuploaderServer\Config\Config;
 use Optimus\FineuploaderServer\File\RootFile;
 use Optimus\FineuploaderServer\Naming\NamingStrategyInterface;
 use Optimus\FineuploaderServer\Response\ErrorResponse;
@@ -26,7 +27,7 @@ class Uploader {
     public function __construct(
         StorageInterface $storage,
         NamingStrategyInterface $namingStrategy,
-        array $config,
+        Config $config,
         Onion $middleware){
         $this->storage = $storage;
         $this->namingStrategy = $namingStrategy;
@@ -37,8 +38,10 @@ class Uploader {
     }
 
     public function upload($input){
+        $this->mergeConfig($input);
+
         $fineUploader = $this->createFineUploaderInstance(
-            $this->mergeFineUploaderConfig($input, $this->config['fine_uploader'])
+            $this->mergeFineUploaderConfig($input, $this->config->get('fine_uploader'))
         );
 //throw new \Exception;
         $filePath = $fineUploader->getName();
@@ -46,7 +49,7 @@ class Uploader {
         // Upload the file to the temporary directory so it can be forwarded
         // to the proper storage by the storage engine
         $file = new RootFile($filePath);
-        $tempPath = $this->uploaderPath($this->config['temp_folder']);
+        $tempPath = $this->uploaderPath($this->config->get('temp_folder'));
 
         $upload = $fineUploader->handleUpload($tempPath, $file->getFilename());
 
@@ -82,7 +85,8 @@ class Uploader {
         // Remove temp directory
         optimus_delete_directory(sprintf('%s/%s', $tempPath, $upload['uuid']));
 
-        $response = new $this->config['success_response_class']($tempFile, $upload, $storage);
+        $responseClass = $this->config->get('success_response_class');
+        $response = new $responseClass($tempFile, $upload, $storage);
 
         if (!($response instanceof SuccessfulResponseInterface)) {
             throw new Exception("Response class " . get_class($response) . " must implement " .
@@ -97,21 +101,81 @@ class Uploader {
         return array_merge($response, [
             'type' => 'upload',
             'success' => true,
-            'file_type' => $file->getType()
+            'file_type' => $file->getType(),
+            'upload_path' => sprintf('%s/%s', $file->getUploaderPath(), $file->getFilename())
         ]);
     }
 
-    public function delete($filename){
-        return $this->storage->delete($filename);
+    public function delete($upload_path){
+        return $this->storage->delete($upload_path);
     }
 
-    public function session($session){
-        return $session === null ? [] : $session;
+    public function session($input){
+        $this->mergeConfig($input);
+        
+        $session = $input['optimus_uploader_files'];
+
+        if ($session === null) {
+            return [];
+        }
+
+        $return = [];
+        foreach($session as $file) {
+            $fileObj = new RootFile($this->uploaderPath('/'.$file));
+
+            $uploaderPath = str_replace(
+                '/'.$fileObj->getFilename(),
+                '',
+                $file
+            );
+            $fileObj->setUploaderPath($uploaderPath);
+
+            $storage = $this->storage->get($fileObj);
+            $id = \uniqid();
+
+            if (is_array($storage) && isset($storage['error'])) {
+                $return[] = array_merge([
+                    'uuid' => $id,
+                    'name' => $fileObj->getFilename(),
+                    'upload_path' => $file,
+                    'type' => 'error',
+                    'error_code' => $storage['error']
+                ], $storage);
+            } else {
+                $return[] = [
+                    'name' => $storage->getFilename(),
+                    'upload_path' => sprintf('%s/%s',
+                                            $storage->getUploaderPath(),
+                                            $storage->getFilename()
+                                        ),
+                    'file_type' => $storage->getType(),
+                    'type' => 'session',
+                    'thumbnailUrl' => $storage->getEdition('thumbnail')->getUrl(),
+                    'uuid' => $id
+                ];
+            }
+        }
+
+        return $return;
     }
 
     public function setStorage(StorageInterface $storage)
     {
         $this->storage = $storage;
+    }
+
+    private function mergeConfig(array $input)
+    {
+        $height = $input['optimus_uploader_thumbnail_height'];
+        $width = $input['optimus_uploader_thumbnail_width'];
+
+        if ($height !== '') {
+            $this->config->set('thumbnails.height', $height);
+        }
+
+        if ($width !== '') {
+            $this->config->set('thumbnails.width', $width);
+        }
     }
 
     private function mergeFineUploaderConfig($input, array $config)
@@ -142,8 +206,8 @@ class Uploader {
 
     private function checkOrCreateTempDirectories()
     {
-        $chunksFolder = $this->uploaderPath($this->config['fine_uploader']['chunks_folder']);
-        $tempFolder = $this->uploaderPath($this->config['temp_folder']);
+        $chunksFolder = $this->uploaderPath($this->config->get('fine_uploader.chunks_folder'));
+        $tempFolder = $this->uploaderPath($this->config->get('temp_folder'));
 
         if (!is_dir($chunksFolder)) {
             mkdir($chunksFolder, 0755, true);
@@ -156,7 +220,7 @@ class Uploader {
 
     private function uploaderPath($path)
     {
-        return sprintf('%s%s', $this->config['uploader_folder'], $path);
+        return sprintf('%s%s', $this->config->get('uploader_folder'), $path);
     }
 
     private function getStoragePath(array $input)

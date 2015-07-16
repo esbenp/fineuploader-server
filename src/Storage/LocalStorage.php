@@ -3,7 +3,10 @@
 namespace Optimus\FineuploaderServer\Storage;
 
 use Closure;
+use Optimus\FineuploaderServer\Config\Config;
+use Optimus\FineuploaderServer\File\Edition;
 use Optimus\FineuploaderServer\File\File;
+use Optimus\FineuploaderServer\File\RootFile;
 use Optimus\FineuploaderServer\Storage\UrlResolverTrait;
 
 class LocalStorage implements StorageInterface {
@@ -12,11 +15,14 @@ class LocalStorage implements StorageInterface {
 
     private $config;
 
+    private $uploaderConfig;
+
     private $urlResolver;
 
-    public function __construct(array $config, $urlResolver)
+    public function __construct(array $config, Config $uploaderConfig, $urlResolver)
     {
         $this->config = $config;
+        $this->uploaderConfig = $uploaderConfig;
         $this->urlResolver = $urlResolver;
 
         $this->createStorageFolderIfNotExists();
@@ -58,6 +64,35 @@ class LocalStorage implements StorageInterface {
         }
 
         // TODO: Remove folder if empty
+    }
+
+    public function get(RootFile $file)
+    {
+        if (!file_exists($file->getPathname())) {
+            return [
+                'error' => 'S0001' // session root file does not exist
+            ];
+        }
+
+        if ($file->isImage()) {
+            $thumbName = $file->generateEditionFilename("thumbnail");
+            $thumbPath = sprintf('%s/%s', $file->getPath(), $thumbName);
+
+            if (!file_exists($thumbPath)) {
+                return [
+                    'error' => 'S0002' // session thumbnail does not exist
+                ];
+            }
+
+            $edition = new Edition("thumbnail", $thumbPath, $file->getUploaderPath(), [
+                'type' => 'image'
+            ], true);
+            $edition->setUrl($this->resolveUrl($edition));
+
+            $file->addEdition($edition);
+        }
+
+        return $file;
     }
 
     private function createStorageFolderIfNotExists()

@@ -15,11 +15,18 @@ return [
 
     ],
 
+    // Can be overridden by client
+    'thumbnails' => [
+        'height' => 100,
+        'width' => 100,
+        'crop' => 'fill'
+    ],
+
     'storage' => 'local',
 
-    'storage_url_resolver' => function($file){
-        return sprintf("http://laravel-packages.dev/images/%s/%s", $file->getUploaderPath(), $file->getFilename());
-    },
+    'storage_url_resolver' => [
+        'class' => Optimus\FineuploaderServer\Http\CloudinaryUrlResolver::class
+    ],
 
     'success_response_class' => Optimus\FineuploaderServer\Response\OptimusResponse::class,
 
@@ -30,23 +37,11 @@ return [
             'config' => [
                 'root_folder' => storage_path() . '/uploader'
             ]
-        ],
-
-        'cloudinary' => [
-            'class' => Optimus\FineuploaderServer\Storage\CloudinaryStorage::class,
-            'config' => [
-                'cloud_name' => 'traede',
-                'api_key' => env('CLOUDINARY_API_KEY'),
-                'api_secret' => env('CLOUDINARY_API_SECRET'),
-                'editions' => [
-                    'thumbnail' => ['crop' => 'fill', 'width' => 100, 'height' => 100]
-                ]
-            ]
         ]
 
     ],
 
-    'naming_strategy' => Optimus\FineuploaderServer\Naming\NoRenameStrategy::class,
+    'naming_strategy' => Optimus\FineuploaderServer\Naming\UniqidStrategy::class,
 
     'middleware' => [
         [

@@ -4,6 +4,7 @@ namespace Optimus\FineuploaderServer\Provider;
 
 use InvalidArgumentException;
 use Illuminate\Support\ServiceProvider as BaseProvider;
+use Optimus\FineuploaderServer\Config\Config;
 use Optimus\FineuploaderServer\Uploader;
 use Optimus\FineuploaderServer\Http\UrlResolverInterface;
 use Optimus\Onion\LayerInterface;
@@ -22,16 +23,18 @@ class LaravelServiceProvider extends BaseProvider {
     public function bindInstance()
     {
         $this->app->bindShared('uploader', function(){
-            $config = $this->app['config']->get('uploader');
+            $config = new Config($this->app['config']->get('uploader'));
 
             $storage = $this->createStorage(
-                $config['storage'],
-                $config['storages'],
-                $config['storage_url_resolver']
+                $config->get('storage'),
+                $config->get('storages'),
+                $config->get('storage_url_resolver'),
+                $config
             );
-            $namingStrategy = new $config['naming_strategy'];
+            $namingStrategyClass = $config->get('naming_strategy');
+            $namingStrategy = new $namingStrategyClass;
 
-            $middleware = $this->createMiddleware($config['middleware']);
+            $middleware = $this->createMiddleware($config->get('middleware'), $config);
 
             $uploader = new Uploader($storage, $namingStrategy, $config, $middleware);
 
@@ -39,15 +42,15 @@ class LaravelServiceProvider extends BaseProvider {
         });
     }
 
-    private function createMiddleware(array $middleware)
+    private function createMiddleware(array $middleware, Config $uploaderConfig)
     {
-        $mappedMiddleware = array_map(function($layer){
+        $mappedMiddleware = array_map(function($layer) use($uploaderConfig){
             if (!isset($layer['class'])) {
                 throw new InvalidArgumentException('No class is specified for middleware');
             }
 
             $config = array_key_exists('config', $layer) ? $layer['config'] : [];
-            $middleware = new $layer['class']($config);
+            $middleware = new $layer['class']($config, $uploaderConfig);
 
             if (!($middleware instanceof LayerInterface)) {
                 throw new InvalidArgumentException($layer['class'] .
@@ -60,7 +63,7 @@ class LaravelServiceProvider extends BaseProvider {
         return (new Onion)->layer($mappedMiddleware);
     }
 
-    private function createStorage($storageKey, array $storages, $urlResolver)
+    private function createStorage($storageKey, array $storages, $urlResolver, Config $config)
     {
         if (!array_key_exists($storageKey, $storages)) {
             throw new InvalidArgumentException("$storageKey is not a valid fineuploader server storage");
@@ -72,7 +75,7 @@ class LaravelServiceProvider extends BaseProvider {
             throw new InvalidArgumentException("$storageKey does not have a valid storage class");
         }
 
-        $config = array_key_exists('config', $storage) ? $storage['config'] : [];
+        $storageConfig = array_key_exists('config', $storage) ? $storage['config'] : [];
 
         if (is_array($urlResolver)) {
             if (!array_key_exists('class', $urlResolver)) {
@@ -92,7 +95,7 @@ class LaravelServiceProvider extends BaseProvider {
             throw new InvalidArgumentException("Url resolver is not a method.");
         }
 
-        $storage = new $storage['class']($config, $urlResolver);
+        $storage = new $storage['class']($storageConfig, $config, $urlResolver);
 
         return $storage;
     }

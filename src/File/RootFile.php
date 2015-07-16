@@ -25,6 +25,11 @@ class RootFile extends File {
         return $this->type;
     }
 
+    public function setType($type)
+    {
+        $this->type = $type;
+    }
+
     public function isImage()
     {
         return exif_imagetype($this->getPathname()) !== false;

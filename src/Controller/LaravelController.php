@@ -29,14 +29,14 @@ class LaravelController extends Controller {
 
     public function delete()
     {
-        $name = $this->request->get('name');
-        return response()->json($this->manager->delete($name));
+        $upload_path = $this->request->get('upload_path');
+        return response()->json($this->manager->delete($upload_path));
     }
 
     public function session()
     {
-        $session = $this->request->get('session', []);
-        return response()->json($this->manager->session($session));
+        $input = $this->request->all();
+        return response()->json($this->manager->session($input));
     }
 
 }
