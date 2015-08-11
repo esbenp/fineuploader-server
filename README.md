@@ -5,5 +5,5 @@
 ## Installation
 
 ```bash
-composer require fineuploader-server 0.1.*
+composer require fineuploader-server 0.2.*
 ```
