@@ -20,8 +20,12 @@ class FineUploader {
 
     protected $uploadName;
 
+    // php.ini defaults
+    const DEFAULT_POST_MAX_SIZE = '8M';
+    const DEFAULT_UPLOAD_MAX_FILESIZE = '2M';
+
     function __construct(){
-        $this->sizeLimit = $this->toBytes(ini_get('upload_max_filesize'));
+        $this->sizeLimit = $this->toBytes($this->iniGet('upload_max_filesize'));
     }
 
     /**
@@ -33,6 +37,22 @@ class FineUploader {
 
         if (isset($_FILES[$this->inputName]))
             return $_FILES[$this->inputName]['name'];
+    }
+
+    private function iniGet($directive)
+    {
+        $val = ini_get($directive);
+
+        if ($val !== false) {
+            return $val;
+        }
+
+        $const = sprintf('DEFAULT_%s', strtoupper($directive));
+        if (defined('self::' . $const)) {
+            return constant('self::' . $const);
+        }
+
+        throw new \Exception('No valid ini values were found.');
     }
 
     /**
@@ -58,8 +78,8 @@ class FineUploader {
 
         // Check that the max upload size specified in class configuration does not
         // exceed size allowed by server config
-        if ($this->toBytes(ini_get('post_max_size')) < $this->sizeLimit ||
-            $this->toBytes(ini_get('upload_max_filesize')) < $this->sizeLimit){
+        if ($this->toBytes($this->iniGet('post_max_size')) < $this->sizeLimit ||
+            $this->toBytes($this->iniGet('upload_max_filesize')) < $this->sizeLimit){
             $size = max(1, $this->sizeLimit / 1024 / 1024) . 'M';
             return array('error'=>"Server error. Increase post_max_size and upload_max_filesize to ".$size);
         }
