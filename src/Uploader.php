@@ -6,6 +6,7 @@ use Exception;
 use Optimus\FineuploaderServer\Config\Config;
 use Optimus\FineuploaderServer\File\RootFile;
 use Optimus\FineuploaderServer\Naming\NamingStrategyInterface;
+use Optimus\FineuploaderServer\Response\ChunkResponse;
 use Optimus\FineuploaderServer\Response\ErrorResponse;
 use Optimus\FineuploaderServer\Response\SuccessfulResponseInterface;
 use Optimus\FineuploaderServer\Storage\StorageInterface;
@@ -43,7 +44,7 @@ class Uploader {
         $fineUploader = $this->createFineUploaderInstance(
             $this->mergeFineUploaderConfig($input, $this->config->get('fine_uploader'))
         );
-//throw new \Exception;
+
         $filePath = $fineUploader->getName();
 
         // Upload the file to the temporary directory so it can be forwarded
@@ -55,6 +56,13 @@ class Uploader {
 
         if (isset($upload['error'])) {
             return (new ErrorResponse($upload['error']))->toArray();
+        }
+
+        // Chunked upload
+        if (isset($input['qqpartindex'])) {
+            if (($input['qqpartindex'] + 1) < $input['qqtotalparts']) {
+                return (new ChunkResponse)->toArray();
+            }
         }
 
         // Get the full temporary path of the file, something like
