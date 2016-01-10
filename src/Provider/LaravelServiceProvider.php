@@ -22,7 +22,7 @@ class LaravelServiceProvider extends BaseProvider {
 
     public function bindInstance()
     {
-        $this->app->bindShared('uploader', function(){
+        $this->app->singleton('uploader', function(){
             $config = new Config($this->app['config']->get('uploader'));
 
             $storage = $this->createStorage(
