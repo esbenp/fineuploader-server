@@ -186,11 +186,11 @@ class Uploader {
         $height = $input['optimus_uploader_thumbnail_height'];
         $width = $input['optimus_uploader_thumbnail_width'];
 
-        if ($height !== '') {
+        if (!empty($height)) {
             $this->config->set('thumbnails.height', $height);
         }
 
-        if ($width !== '') {
+        if (!empty($width)) {
             $this->config->set('thumbnails.width', $width);
         }
     }
@@ -198,13 +198,13 @@ class Uploader {
     private function mergeFineUploaderConfig($input, array $config)
     {
         $allowedExtensions = $input['optimus_uploader_allowed_extensions'];
-        if ($allowedExtensions !== '') {
+        if (!empty($allowedExtensions)) {
             $config['allowed_extensions'] = explode(',', $allowedExtensions);
         }
 
-        $sizeLimit = $input['optimus_uploader_size_limit'];
-        if ($sizeLimit !== '0') {
-            $config['size_limit'] = (int) $sizeLimit;
+        $sizeLimit = (int) $input['optimus_uploader_size_limit'];
+        if (!empty($sizeLimit)) {
+            $config['size_limit'] = $sizeLimit;
         }
 
         return $config;
