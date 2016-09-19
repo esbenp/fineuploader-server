@@ -110,8 +110,13 @@ class Uploader {
             'type' => 'upload',
             'success' => true,
             'file_type' => $file->getType(),
-            'upload_path' => $file->getName()
+            'upload_path' => $this->clearFileExtension($file->getName())
         ]);
+    }
+    
+    private function clearFileExtension($fileName)
+    {
+        return substr($fileName, 0, (strrpos($fileName, ".")));
     }
 
     public function delete($upload_path){
