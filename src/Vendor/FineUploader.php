@@ -325,7 +325,7 @@ class FineUploader {
      * @param string $str
      */
     protected function toBytes($str){
-        $val = trim($str);
+        $val = substr(trim($str), 0, strlen($str)-1);
         $last = strtolower($str[strlen($str)-1]);
         switch($last) {
             case 'g': $val *= 1024;
