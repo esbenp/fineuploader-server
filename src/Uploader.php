@@ -70,12 +70,15 @@ class Uploader {
         $newTempPath = sprintf('%s/%s/%s', $tempPath, $upload['uuid'], $file->getFilename());
         $tempFile = new RootFile($newTempPath);
 
+        $tempFile->setOriginalName($file->getFilename());
+
         // Get a new name based on the naming strategy
         $newName = $this->namingStrategy->generateName($tempFile);
         if ($newName !== $tempFile->getFilename()) {
             $renamedTempPath = sprintf('%s/%s', $tempFile->getPath(), $newName);
             rename($newTempPath, $renamedTempPath);
             $tempFile = new RootFile($renamedTempPath);
+            $tempFile->setOriginalName($file->getFilename());
         }
 
         // This is the relative path from the uploader folder
@@ -110,10 +113,11 @@ class Uploader {
             'type' => 'upload',
             'success' => true,
             'file_type' => $file->getType(),
+            'original_name' => $file->getOriginalName(),
             'upload_path' => $this->clearFileExtension($file->getName())
         ]);
     }
-    
+
     private function clearFileExtension($fileName)
     {
         return substr($fileName, 0, (strrpos($fileName, ".")));

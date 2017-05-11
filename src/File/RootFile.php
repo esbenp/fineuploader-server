@@ -11,6 +11,8 @@ class RootFile extends File {
 
     private $name;
 
+    private $originalName;
+
     private $type;
 
     public function getType()
@@ -43,6 +45,16 @@ class RootFile extends File {
     public function setName($name)
     {
         $this->name = $name;
+    }
+
+    public function getOriginalName()
+    {
+        return $this->originalName;
+    }
+
+    public function setOriginalName($name)
+    {
+        $this->originalName = $name;
     }
 
     public function addEdition(Edition $file)
